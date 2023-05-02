@@ -29,7 +29,11 @@ global mpt_load_state_trie_value:
 
 global mpt_load_txn_trie_value:
     // stack: retdest
-    PANIC // TODO
+    // Load the for now two fields.
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+
+    JUMP
 
 global mpt_load_receipt_trie_value:
     // stack: retdest
