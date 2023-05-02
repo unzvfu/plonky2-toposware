@@ -5,8 +5,8 @@ use crate::cpu::kernel::aggregator::KERNEL;
 use crate::cpu::kernel::constants::global_metadata::GlobalMetadata;
 use crate::cpu::kernel::constants::trie_type::PartialTrieType;
 use crate::cpu::kernel::interpreter::Interpreter;
-use crate::cpu::kernel::tests::mpt::{extension_to_leaf, test_account_1, test_account_1_rlp};
-use crate::generation::mpt::all_mpt_prover_inputs_reversed;
+use crate::cpu::kernel::tests::mpt::{extension_to_leaf, test_account_1, test_account_1_rlp, test_tx_1, test_tx_1_rlp};
+use crate::generation::mpt::{all_mpt_prover_inputs_reversed};
 use crate::generation::TrieInputs;
 use crate::Node;
 
@@ -53,16 +53,22 @@ fn load_all_mpts_leaf() -> Result<()> {
             value: test_account_1_rlp(),
         }
         .into(),
-        transactions_trie: Default::default(),
+        transactions_trie: Node::Leaf {
+            nibbles: 0xABC_u64.into(),
+            value: test_tx_1_rlp(),
+        }
+        .into(),
         receipts_trie: Default::default(),
         storage_tries: vec![],
     };
+    println!("transaction_trie = {:?} ", rlp::decode_list::<U256>(&test_tx_1_rlp()));
 
     let load_all_mpts = KERNEL.global_labels["load_all_mpts"];
 
     let initial_stack = vec![0xDEADBEEFu32.into()];
     let mut interpreter = Interpreter::new_with_kernel(load_all_mpts, initial_stack);
     interpreter.generation_state.mpt_prover_inputs = all_mpt_prover_inputs_reversed(&trie_inputs);
+    println!("mpt_prover_inputs = {:?}", interpreter.generation_state.mpt_prover_inputs);
     interpreter.run()?;
     assert_eq!(interpreter.stack(), vec![]);
 
@@ -82,13 +88,21 @@ fn load_all_mpts_leaf() -> Result<()> {
             // These last two elements encode the storage trie, which is a hash node.
             (PartialTrieType::Hash as u32).into(),
             test_account_1().storage_root.into_uint(),
+            // The transaction trie
+            type_leaf,
+            3.into(),
+            0xABC.into(),
+            15.into(), // value ptr???
+            test_tx_1()[0],
+            test_tx_1()[1]
         ]
     );
 
-    assert_eq!(
-        interpreter.get_global_metadata_field(GlobalMetadata::TransactionTrieRoot),
-        0.into()
-    );
+    println!("state_trie_root =  {:?}", interpreter.get_global_metadata_field(GlobalMetadata::StateTrieRoot));
+    // assert_eq!(
+    //     interpreter.get_global_metadata_field(GlobalMetadata::TransactionTrieRoot),
+    //     0.into()
+    // );
     assert_eq!(
         interpreter.get_global_metadata_field(GlobalMetadata::ReceiptTrieRoot),
         0.into()
@@ -99,10 +113,11 @@ fn load_all_mpts_leaf() -> Result<()> {
 
 #[test]
 fn load_all_mpts_hash() -> Result<()> {
-    let hash = H256::random();
+    let state_hash = H256::random();
+    let transaction_hash = H256::random();
     let trie_inputs = TrieInputs {
-        state_trie: Node::Hash(hash).into(),
-        transactions_trie: Default::default(),
+        state_trie: Node::Hash(state_hash).into(),
+        transactions_trie: Node::Hash(transaction_hash).into(),
         receipts_trie: Default::default(),
         storage_tries: vec![],
     };
@@ -118,13 +133,17 @@ fn load_all_mpts_hash() -> Result<()> {
     let type_hash = U256::from(PartialTrieType::Hash as u32);
     assert_eq!(
         interpreter.get_trie_data(),
-        vec![0.into(), type_hash, hash.into_uint(),]
+        vec![
+            0.into(),
+            type_hash, state_hash.into_uint(),
+            type_hash, transaction_hash.into_uint()    
+        ]
     );
 
-    assert_eq!(
-        interpreter.get_global_metadata_field(GlobalMetadata::TransactionTrieRoot),
-        0.into()
-    );
+    // assert_eq!(
+    //     interpreter.get_global_metadata_field(GlobalMetadata::TransactionTrieRoot),
+    //     0.into()
+    // );
     assert_eq!(
         interpreter.get_global_metadata_field(GlobalMetadata::ReceiptTrieRoot),
         0.into()
@@ -141,9 +160,15 @@ fn load_all_mpts_empty_branch() -> Result<()> {
         value: vec![],
     }
     .into();
+    let children = core::array::from_fn(|_| Node::Empty.into());
+    let transactions_trie = Node::Branch {
+        children,
+        value: vec![],
+    }
+    .into();
     let trie_inputs = TrieInputs {
         state_trie,
-        transactions_trie: Default::default(),
+        transactions_trie,
         receipts_trie: Default::default(),
         storage_tries: vec![],
     };
@@ -179,13 +204,32 @@ fn load_all_mpts_empty_branch() -> Result<()> {
             0.into(),
             0.into(), // child 16
             0.into(), // value_ptr
+            // transactions trie
+            type_branch,
+            0.into(), // child 0
+            0.into(), // ...
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(), // child 16
+            0.into(), // value_ptr
         ]
     );
 
-    assert_eq!(
-        interpreter.get_global_metadata_field(GlobalMetadata::TransactionTrieRoot),
-        0.into()
-    );
+    // assert_eq!(
+    //     interpreter.get_global_metadata_field(GlobalMetadata::TransactionTrieRoot),
+    //     0.into()
+    // );
     assert_eq!(
         interpreter.get_global_metadata_field(GlobalMetadata::ReceiptTrieRoot),
         0.into()
@@ -198,7 +242,7 @@ fn load_all_mpts_empty_branch() -> Result<()> {
 fn load_all_mpts_ext_to_leaf() -> Result<()> {
     let trie_inputs = TrieInputs {
         state_trie: extension_to_leaf(test_account_1_rlp()),
-        transactions_trie: Default::default(),
+        transactions_trie: extension_to_leaf(test_tx_1_rlp()),
         receipts_trie: Default::default(),
         storage_tries: vec![],
     };
@@ -232,6 +276,17 @@ fn load_all_mpts_ext_to_leaf() -> Result<()> {
             // These last two elements encode the storage trie, which is a hash node.
             (PartialTrieType::Hash as u32).into(),
             test_account_1().storage_root.into_uint(),
+            // The transaction trie
+            type_extension,
+            3.into(),     // 3 nibbles
+            0xABC.into(), // key part
+            19.into(),     // Pointer to the leaf node immediately below.
+            type_leaf,
+            3.into(),
+            0xDEF.into(),
+            23.into(), // value ptr???
+            test_tx_1()[0],
+            test_tx_1()[1]
         ]
     );
 

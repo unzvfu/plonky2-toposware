@@ -30,6 +30,31 @@ impl Default for AccountRlp {
     }
 }
 
+#[derive(RlpEncodable, RlpDecodable, Debug)]
+pub struct TxRlp {
+    pub from: H256,
+    pub to: H256,
+    pub nonce: U256,
+    pub gas: U256,
+    pub gas_price: U256,
+    pub value: U256,
+    //pub data: Vec<U256>,
+}
+
+impl Default for TxRlp {
+    fn default() -> Self {
+        Self {
+            from: H256::zero(),
+            to: H256::zero(),
+            nonce: U256::zero(),
+            gas: U256::zero(),
+            gas_price: U256::zero(),
+            value: U256::zero(),
+            //data: vec![]
+        }
+    }
+}
+
 pub(crate) fn all_mpt_prover_inputs_reversed(trie_inputs: &TrieInputs) -> Vec<U256> {
     let mut inputs = all_mpt_prover_inputs(trie_inputs);
     inputs.reverse();
