@@ -32,6 +32,16 @@ global mpt_load_txn_trie_value:
     // Load the for now two fields.
     PROVER_INPUT(mpt) %append_to_trie_data
     PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
+    PROVER_INPUT(mpt) %append_to_trie_data
 
     JUMP
 

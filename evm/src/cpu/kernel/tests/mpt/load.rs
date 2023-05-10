@@ -94,7 +94,17 @@ fn load_all_mpts_leaf() -> Result<()> {
             0xABC.into(),
             15.into(), // value ptr???
             test_tx_1()[0],
-            test_tx_1()[1]
+            test_tx_1()[1],
+            test_tx_1()[2],
+            test_tx_1()[3],
+            test_tx_1()[4],
+            test_tx_1()[5],
+            test_tx_1()[6],
+            test_tx_1()[7],
+            test_tx_1()[8],
+            test_tx_1()[9],
+            test_tx_1()[10],
+            test_tx_1()[11],
         ]
     );
 

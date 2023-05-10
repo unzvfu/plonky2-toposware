@@ -47,6 +47,27 @@ pub(crate) fn test_account_2_rlp() -> Vec<u8> {
     rlp::encode(&test_account_2()).to_vec()
 }
 
+pub(crate) fn test_tx_1() -> Vec<U256> {
+    vec![
+        U256::from(1111),
+        U256::from(2222),
+        U256::from(3333),
+        U256::from(4444),
+        U256::from(5555),
+        U256::from(6666),
+        U256::from(7777),
+        U256::from(8888),
+        U256::from(9999),
+        U256::from(1010),
+        U256::from(1111),
+        U256::from(1212)
+    ]
+}
+
+pub(crate) fn test_tx_1_rlp() -> Vec<u8> {
+    rlp::encode_list(&test_tx_1()).to_vec()
+}
+
 /// A `PartialTrie` where an extension node leads to a leaf node containing an account.
 pub(crate) fn extension_to_leaf(value: Vec<u8>) -> HashedPartialTrie {
     Node::Extension {
