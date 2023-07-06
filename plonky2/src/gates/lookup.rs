@@ -165,23 +165,25 @@ impl<F: RichField> SimpleGenerator<F> for LookupGenerator {
         let get_wire = |wire: usize| -> F { witness.get_target(Target::wire(self.row, wire)) };
 
         let input_val = get_wire(LookupGate::wire_ith_looking_inp(self.slot_nb));
-        let output_val = if input_val
-            == F::from_canonical_u16(self.lut[input_val.to_canonical_u64() as usize].0)
-        {
-            F::from_canonical_u16(self.lut[input_val.to_canonical_u64() as usize].1)
-        } else {
-            let mut cur_idx = 0;
-            while input_val != F::from_canonical_u16(self.lut[cur_idx].0)
-                && cur_idx < self.lut.len()
-            {
-                cur_idx += 1;
-            }
-            assert!(cur_idx < self.lut.len(), "Incorrect input value provided");
-            F::from_canonical_u16(self.lut[cur_idx].1)
-        };
+        let (input, output) = self.lut[input_val.to_canonical_u64() as usize];
+        if input_val == F::from_canonical_u16(input) {
+            let output_val = F::from_canonical_u16(output);
 
-        let out_wire = Target::wire(self.row, LookupGate::wire_ith_looking_out(self.slot_nb));
-        out_buffer.set_target(out_wire, output_val);
+            let out_wire = Target::wire(self.row, LookupGate::wire_ith_looking_out(self.slot_nb));
+            out_buffer.set_target(out_wire, output_val);
+        } else {
+            for (input, output) in self.lut.iter() {
+                if input_val == F::from_canonical_u16(*input) {
+                    let output_val = F::from_canonical_u16(*output);
+
+                    let out_wire =
+                        Target::wire(self.row, LookupGate::wire_ith_looking_out(self.slot_nb));
+                    out_buffer.set_target(out_wire, output_val);
+                    return;
+                }
+            }
+            panic!("Incorrect input value provided");
+        };
     }
 
     fn serialize(&self, dst: &mut Vec<u8>) -> IoResult<()> {
