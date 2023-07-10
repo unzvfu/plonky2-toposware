@@ -5,8 +5,6 @@ use crate::field::goldilocks_field::GoldilocksField;
 
 #[rustfmt::skip]
 impl Poseidon2<12> for GoldilocksField {
-    // We only need INTERNAL_MATRIX_DIAG_M_1 here, specifying the diagonal - 1 of the internal matrix
-
     const INTERNAL_MATRIX_DIAG_M_1: [u64; 12]  = [
         0xcf6f77ac16722af9, 0x3fd4c0d74672aebc, 0x9b72bf1c1c3d08a8, 0xe4940f84b71e4ac2,
         0x61b27b077118bc72, 0x2efd8379b8e661e2, 0x858edcf353df0341, 0x2d9c20affb5c4516,
@@ -21,6 +19,17 @@ impl Poseidon2<12> for GoldilocksField {
          }
     }
 }
+
+#[rustfmt::skip]
+impl Poseidon2<16> for GoldilocksField {
+    const INTERNAL_MATRIX_DIAG_M_1: [u64; 16]  = [
+        0xde9b91a467d6afc0, 0xc5f16b9c76a9be17, 0x0ab0fef2d540ac55, 0x3001d27009d05773,
+        0xed23b1f906d3d9eb, 0x5ce73743cba97054, 0x1c3bab944af4ba24, 0x2faa105854dbafae,
+        0x53ffb3ae6d421a10, 0xbcda9df8884ba396, 0xfc1273e4a31807bb, 0xc77952573d5142c0,
+        0x56683339a819b85e, 0x328fcbd8f0ddc8eb, 0xb5101e303fce9cb7, 0x774487b8c40089bb,
+    ];
+}
+
 #[cfg(test)]
 mod tests {
     use crate::field::goldilocks_field::GoldilocksField as F;

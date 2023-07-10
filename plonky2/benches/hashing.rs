@@ -43,6 +43,7 @@ pub(crate) fn bench_poseidon2<F: Poseidon2<W>, const W: usize>(c: &mut Criterion
 fn criterion_benchmark(c: &mut Criterion) {
     bench_poseidon::<GoldilocksField, SPONGE_WIDTH>(c);
     bench_poseidon2::<GoldilocksField, SPONGE_WIDTH>(c);
+    bench_poseidon2::<GoldilocksField, 16>(c);
     bench_keccak::<GoldilocksField>(c);
 }
 
