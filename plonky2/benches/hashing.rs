@@ -19,21 +19,18 @@ pub(crate) fn bench_keccak<F: RichField>(c: &mut Criterion) {
     });
 }
 
-pub(crate) fn bench_poseidon<F: Poseidon>(c: &mut Criterion) {
-    c.bench_function(
-        &format!("poseidon<{}, {SPONGE_WIDTH}>", type_name::<F>()),
-        |b| {
-            b.iter_batched(
-                || F::rand_array::<SPONGE_WIDTH>(),
-                |state| F::poseidon(state),
-                BatchSize::SmallInput,
-            )
-        },
-    );
+pub(crate) fn bench_poseidon<F: Poseidon<W>, const W: usize>(c: &mut Criterion) {
+    c.bench_function(&format!("poseidon<{}, {W}>", type_name::<F>()), |b| {
+        b.iter_batched(
+            || F::rand_array::<W>(),
+            |state| F::poseidon(state),
+            BatchSize::SmallInput,
+        )
+    });
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_poseidon::<GoldilocksField>(c);
+    bench_poseidon::<GoldilocksField, SPONGE_WIDTH>(c);
     bench_keccak::<GoldilocksField>(c);
 }
 

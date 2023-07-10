@@ -83,8 +83,8 @@ where
         DummyProofGenerator<F, C, D>,
         ArithmeticBaseGenerator<F, D>,
         ConstantGenerator<F>,
-        PoseidonGenerator<F, D>,
-        PoseidonMdsGenerator<D>,
+        PoseidonGenerator<F, 12, D>,
+        PoseidonMdsGenerator<12, D>,
         RandomValueGenerator,
         SquareRootGenerator<F, D>
     }
