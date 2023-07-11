@@ -10,6 +10,10 @@ use crate::cpu::kernel::parser::parse;
 pub static KERNEL: Lazy<Kernel> = Lazy::new(combined_kernel);
 
 pub(crate) fn combined_kernel() -> Kernel {
+    // Temporary, for benchmarking in this branch only.
+    if std::fs::metadata("kernel.json").is_ok() {
+        return Kernel::from_file("kernel.json");
+    }
     let files = vec![
         "global jumped_to_0: PANIC",
         "global jumped_to_1: PANIC",

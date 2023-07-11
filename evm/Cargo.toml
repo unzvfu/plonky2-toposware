@@ -59,3 +59,7 @@ required-features = ["asmtools"]
 [[bench]]
 name = "stack_manipulation"
 harness = false
+
+[[bench]]
+name = "prover"
+harness = false
