@@ -160,7 +160,7 @@ fn dummy_many_rows_proof<
     let initial_a = builder.add_virtual_target();
 
     let output = builder.add_lookup_from_index(initial_a, tip5_idx);
-    for _ in 0..514 {
+    for _ in 0..1 << (log2_size - 1) {
         builder.add_lookup_from_index(output, 0);
     }
 

@@ -497,6 +497,7 @@ where
     );
     let step = 1 << (rate_bits - quotient_degree_bits);
     // When opening the `Z`s polys at the "next" point, need to look at the point `next_step` steps away.
+    let local_timer = TimingTree::new("compute lagrange polys", log::Level::Info);
     let next_step = 1 << quotient_degree_bits;
 
     let powers_vec = SmallPowers::<F>::new(F::coset_shift().to_noncanonical_u64() as u32)
@@ -524,6 +525,7 @@ where
     let lagrange_last = modified_poly.fft_with_options(None, None);
 
     let z_h_on_coset = ZeroPolyOnCoset::<F>::new(degree_bits, quotient_degree_bits);
+    local_timer.print();
 
     // Retrieve the LDE values at index `i`.
     let get_trace_values_packed = |i_start| -> [P; S::COLUMNS] {
