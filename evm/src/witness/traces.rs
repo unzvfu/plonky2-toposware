@@ -12,7 +12,7 @@ use crate::config::StarkConfig;
 use crate::cpu::columns::CpuColumnsView;
 use crate::keccak_sponge::columns::KECCAK_WIDTH_BYTES;
 use crate::keccak_sponge::keccak_sponge_stark::KeccakSpongeOp;
-use crate::util::trace_rows_to_poly_values;
+use crate::util::{trace_rows_to_poly_values, trace_rows_to_poly_values_with_range_check};
 use crate::witness::memory::MemoryOp;
 use crate::{arithmetic, keccak, logic};
 
@@ -137,7 +137,7 @@ impl<T: Copy> Traces<T> {
         );
 
         let cpu_rows = cpu.into_iter().map(|x| x.into()).collect();
-        let cpu_trace = trace_rows_to_poly_values(cpu_rows);
+        let cpu_trace = trace_rows_to_poly_values_with_range_check(cpu_rows);
         let keccak_trace = timed!(
             timing,
             "generate Keccak trace",

@@ -3,7 +3,7 @@ use itertools::Itertools;
 use keccak_hash::keccak;
 use plonky2::field::types::Field;
 
-use crate::cpu::columns::CpuColumnsView;
+use crate::cpu::columns::{CpuColumnsView, NUM_COLS_TO_CHECK};
 use crate::cpu::kernel::aggregator::KERNEL;
 use crate::cpu::kernel::assembler::BYTES_PER_OFFSET;
 use crate::cpu::kernel::constants::context_metadata::ContextMetadata;
@@ -17,6 +17,7 @@ use crate::witness::errors::MemoryError::{ContextTooLarge, SegmentTooLarge, Virt
 use crate::witness::errors::ProgramError;
 use crate::witness::errors::ProgramError::MemoryError;
 use crate::witness::memory::{MemoryAddress, MemoryChannel, MemoryOp, MemoryOpKind};
+use crate::witness::range_check::RANGE_MAX;
 use crate::witness::util::{
     keccak_sponge_log, mem_read_gp_with_log_and_fill, mem_write_gp_log_and_fill,
     stack_pop_with_log_and_fill, stack_push_log_and_fill,
@@ -162,6 +163,19 @@ pub(crate) fn generate_prover_input<F: Field>(
     let input_fn = &KERNEL.prover_inputs[&pc];
     let input = state.prover_input(input_fn);
     let write = stack_push_log_and_fill(state, &mut row, input)?;
+
+    // Split input value into 16-bits limbs so we can range check all the limbs.
+    let val_limbs = input.0;
+    let mut val_u32_limbs = [0 as u32; 8];
+    for (i, limb) in val_limbs.into_iter().enumerate() {
+        val_u32_limbs[2 * i] = limb as u32;
+        val_u32_limbs[2 * i + 1] = (limb >> 32) as u32;
+    }
+    for i in 0..NUM_COLS_TO_CHECK {
+        row.range_check_cols[2 * i] = F::from_canonical_u32(val_u32_limbs[i] % RANGE_MAX as u32);
+        row.range_check_cols[2 * i + 1] =
+            F::from_canonical_u32(val_u32_limbs[i] / RANGE_MAX as u32);
+    }
 
     state.traces.push_memory(write);
     state.traces.push_cpu(row);
@@ -577,6 +591,9 @@ pub(crate) fn generate_syscall<F: Field>(
         + (U256::from(u64::from(state.registers.is_kernel)) << 32)
         + (U256::from(state.registers.gas_used) << 192);
 
+    // Split gas into two 16-bits limbs so they can be range checked.
+    row.range_check_cols[0] = F::from_canonical_u32((state.registers.gas_used % RANGE_MAX) as u32);
+    row.range_check_cols[1] = F::from_canonical_u32((state.registers.gas_used / RANGE_MAX) as u32);
     // Set registers before pushing to the stack; in particular, we need to set kernel mode so we
     // can't incorrectly trigger a stack overflow. However, note that we have to do it _after_ we
     // make `syscall_info`, which should contain the old values.
@@ -752,6 +769,9 @@ pub(crate) fn generate_exception<F: Field>(
     let exc_info =
         U256::from(state.registers.program_counter) + (U256::from(state.registers.gas_used) << 192);
 
+    // Split gas into two 16-bits limbs so they can be range checked.
+    row.range_check_cols[0] = F::from_canonical_u32((state.registers.gas_used % RANGE_MAX) as u32);
+    row.range_check_cols[1] = F::from_canonical_u32((state.registers.gas_used / RANGE_MAX) as u32);
     // Set registers before pushing to the stack; in particular, we need to set kernel mode so we
     // can't incorrectly trigger a stack overflow. However, note that we have to do it _after_ we
     // make `exc_info`, which should contain the old values.

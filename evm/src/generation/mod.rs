@@ -23,6 +23,7 @@ use crate::generation::state::GenerationState;
 use crate::memory::segments::Segment;
 use crate::proof::{BlockMetadata, PublicValues, TrieRoots};
 use crate::witness::memory::{MemoryAddress, MemoryChannel, MemoryOp, MemoryOpKind};
+use crate::witness::range_check::RANGE_MAX;
 use crate::witness::transition::transition;
 
 pub mod mpt;
@@ -229,7 +230,10 @@ fn simulate_cpu<F: RichField + Extendable<D>, const D: usize>(
 
         transition(state)?;
 
-        if already_in_halt_loop && state.traces.clock().is_power_of_two() {
+        if already_in_halt_loop
+            && state.traces.clock().is_power_of_two()
+            && state.traces.clock() >= ((RANGE_MAX - 1) as usize)
+        {
             log::info!("CPU trace padded to {} cycles", state.traces.clock());
             break;
         }

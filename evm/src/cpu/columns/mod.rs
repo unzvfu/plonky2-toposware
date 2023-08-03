@@ -18,6 +18,9 @@ mod general;
 pub(crate) mod ops;
 
 pub type MemValue<T> = [T; memory::VALUE_LIMBS];
+pub const NUM_COLS_TO_CHECK: usize = 8;
+pub const NUM_RANGE_CHECK_COLS: usize = 6 * NUM_COLS_TO_CHECK + 1;
+pub const START_RANGE_CHECK: usize = 9;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -64,6 +67,9 @@ pub struct CpuColumnsView<T: Copy> {
 
     /// If CPU cycle: Gas counter.
     pub gas: T,
+
+    /// Columns used for range checks
+    pub range_check_cols: [T; NUM_RANGE_CHECK_COLS],
 
     /// If CPU cycle: flags for EVM instructions (a few cannot be shared; see the comments in
     /// `OpsColumnsView`).

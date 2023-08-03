@@ -11,6 +11,8 @@ use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
 use plonky2::util::transpose;
 
+use crate::witness::range_check::add_range_check_rows;
+
 /// Construct an integer from its constituent bits (in little-endian order)
 pub fn limb_from_bits_le<P: PackedField>(iter: impl IntoIterator<Item = P>) -> P {
     // TODO: This is technically wrong, as 1 << i won't be canonical for all fields...
@@ -39,6 +41,24 @@ pub fn trace_rows_to_poly_values<F: Field, const COLUMNS: usize>(
 ) -> Vec<PolynomialValues<F>> {
     let trace_row_vecs = trace_rows.into_iter().map(|row| row.to_vec()).collect_vec();
     let trace_col_vecs: Vec<Vec<F>> = transpose(&trace_row_vecs);
+    trace_col_vecs
+        .into_iter()
+        .map(|column| PolynomialValues::new(column))
+        .collect()
+}
+
+pub fn trace_rows_to_poly_values_with_range_check<
+    F: RichField + Extendable<D>,
+    const D: usize,
+    const COLUMNS: usize,
+>(
+    trace_rows: Vec<[F; COLUMNS]>,
+) -> Vec<PolynomialValues<F>> {
+    let trace_row_vecs = trace_rows.into_iter().map(|row| row.to_vec()).collect_vec();
+
+    let mut trace_col_vecs: Vec<Vec<F>> = transpose(&trace_row_vecs);
+
+    add_range_check_rows(&mut trace_col_vecs);
     trace_col_vecs
         .into_iter()
         .map(|column| PolynomialValues::new(column))

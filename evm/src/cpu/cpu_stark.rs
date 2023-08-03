@@ -8,6 +8,8 @@ use plonky2::field::packed::PackedField;
 use plonky2::field::types::Field;
 use plonky2::hash::hash_types::RichField;
 
+use super::columns::NUM_COLS_TO_CHECK;
+use super::prover_input;
 use crate::all_stark::Table;
 use crate::constraint_consumer::{ConstraintConsumer, RecursiveConstraintConsumer};
 use crate::cpu::columns::{CpuColumnsView, COL_MAP, NUM_CPU_COLUMNS};
@@ -17,10 +19,12 @@ use crate::cpu::{
     modfp254, pc, push0, shift, simple_logic, stack, stack_bounds, syscalls_exceptions,
 };
 use crate::cross_table_lookup::{Column, TableWithColumns};
+use crate::lookup::{eval_lookups, eval_lookups_circuit};
 use crate::memory::segments::Segment;
 use crate::memory::{NUM_CHANNELS, VALUE_LIMBS};
 use crate::stark::Stark;
 use crate::vars::{StarkEvaluationTargets, StarkEvaluationVars};
+use crate::witness::range_check::PERMUTED_COLS;
 
 pub fn ctl_data_keccak_sponge<F: Field>() -> Vec<Column<F>> {
     // When executing KECCAK_GENERAL, the GP memory channels are used as follows:
@@ -183,6 +187,20 @@ impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for CpuStark<F, D
         FE: FieldExtension<D2, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
+        for i in 0..NUM_COLS_TO_CHECK {
+            eval_lookups(
+                vars,
+                yield_constr,
+                PERMUTED_COLS.start + (4 * i),
+                PERMUTED_COLS.start + (4 * i + 1),
+            );
+            eval_lookups(
+                vars,
+                yield_constr,
+                PERMUTED_COLS.start + (4 * i + 2),
+                PERMUTED_COLS.start + (4 * i + 3),
+            );
+        }
         let local_values = vars.local_values.borrow();
         let next_values = vars.next_values.borrow();
         bootstrap_kernel::eval_bootstrap_kernel(vars, yield_constr);
@@ -196,6 +214,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for CpuStark<F, D
         memio::eval_packed(local_values, yield_constr);
         modfp254::eval_packed(local_values, yield_constr);
         pc::eval_packed(local_values, yield_constr);
+        prover_input::eval_packed(local_values, yield_constr);
         push0::eval_packed(local_values, yield_constr);
         shift::eval_packed(local_values, yield_constr);
         simple_logic::eval_packed(local_values, yield_constr);
@@ -210,6 +229,22 @@ impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for CpuStark<F, D
         vars: StarkEvaluationTargets<D, { Self::COLUMNS }>,
         yield_constr: &mut RecursiveConstraintConsumer<F, D>,
     ) {
+        for i in 0..NUM_COLS_TO_CHECK {
+            eval_lookups_circuit(
+                builder,
+                vars,
+                yield_constr,
+                PERMUTED_COLS.start + (4 * i),
+                PERMUTED_COLS.start + (4 * i + 1),
+            );
+            eval_lookups_circuit(
+                builder,
+                vars,
+                yield_constr,
+                PERMUTED_COLS.start + (4 * i + 2),
+                PERMUTED_COLS.start + (4 * i + 3),
+            );
+        }
         let local_values = vars.local_values.borrow();
         let next_values = vars.next_values.borrow();
         bootstrap_kernel::eval_bootstrap_kernel_circuit(builder, vars, yield_constr);
@@ -223,6 +258,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for CpuStark<F, D
         memio::eval_ext_circuit(builder, local_values, yield_constr);
         modfp254::eval_ext_circuit(builder, local_values, yield_constr);
         pc::eval_ext_circuit(builder, local_values, yield_constr);
+        prover_input::eval_ext_circuit(builder, local_values, yield_constr);
         push0::eval_ext_circuit(builder, local_values, yield_constr);
         shift::eval_ext_circuit(builder, local_values, yield_constr);
         simple_logic::eval_ext_circuit(builder, local_values, yield_constr);

@@ -14,6 +14,7 @@ use crate::cpu::columns::CpuColumnsView;
 use crate::cpu::kernel::aggregator::KERNEL;
 use crate::cpu::membus::NUM_GP_CHANNELS;
 use crate::memory::segments::Segment;
+use crate::witness::range_check::RANGE_MAX;
 
 // Copy the constant but make it `usize`.
 const BYTES_PER_OFFSET: usize = crate::cpu::kernel::assembler::BYTES_PER_OFFSET as usize;
@@ -109,7 +110,10 @@ pub fn eval_packed<P: PackedField>(
     // Check the kernel mode, for syscalls only
     yield_constr.constraint(filter_syscall * (output[1] - lv.is_kernel_mode));
     yield_constr.constraint(total_filter * (output[6] - lv.gas));
-    // TODO: Range check `output[6]`.
+    // Check that the gas limbs are correctly set in the columns to be range checked
+    let gas = lv.range_check_cols[0]
+        + lv.range_check_cols[1] * P::Scalar::from_canonical_u32(RANGE_MAX as u32);
+    yield_constr.constraint(total_filter * (output[6] - gas));
     yield_constr.constraint(total_filter * output[7]); // High limb of gas is zero.
 
     // Zero the rest of that register
@@ -295,8 +299,16 @@ pub fn eval_ext_circuit<F: RichField + Extendable<D>, const D: usize>(
         let constr = builder.mul_extension(total_filter, diff);
         yield_constr.constraint(builder, constr);
     }
-    // TODO: Range check `output[6]`.
     {
+        // Check that the gas limbs are correctly set in the columns to be range checked
+        let range_max =
+            builder.constant_extension(F::Extension::from_canonical_u32(RANGE_MAX as u32));
+        let gas =
+            builder.mul_add_extension(lv.range_check_cols[1], range_max, lv.range_check_cols[0]);
+
+        let gas_diff = builder.sub_extension(output[6], gas);
+        let gas_constraint = builder.mul_extension(total_filter, gas_diff);
+        yield_constr.constraint(builder, gas_constraint);
         // High limb of gas is zero.
         let constr = builder.mul_extension(total_filter, output[7]);
         yield_constr.constraint(builder, constr);
